@@ -30,12 +30,12 @@ var nengzhong = true;
 var zimg = "";
 var wimg = "";
 var ping = "";
+var daojishiArr = new Array();
 var Game = (function (_super) {
     function Game() {
         _this = this;
         this.caijinarr = [];
         Game.super(this);
-
         //隐藏： 登录box
         this.dl_box.visible = false;
         this.gerenzhongxin_box.getChildByName("金币").getChildAt(0).text = "金币：";
@@ -673,6 +673,7 @@ var Game = (function (_super) {
             this.qiehuan.getChildAt(i).visible = false;
             //this.qiehuan.getChildAt(i).on(Laya.Event.MOUSE_DOWN, this, this.qiefun, [i])
         }
+        Laya.timer.loop(1000, this, this.countDownFunc)
     }
 
     Laya.class(Game, "Game", _super)
@@ -1113,6 +1114,7 @@ var Game = (function (_super) {
                                                 _this.adtaskfun()
                                                 break;
                                             case 1:
+                                                _this.haoyoufun(1)
                                                 break;
                                             case 2:
                                                 _this.adtaskfun1()
@@ -1987,6 +1989,33 @@ var Game = (function (_super) {
 
     }
 
+    _proto.getLeftTimeStamp = function (targeTimeStamp) {
+        targeTimeStamp = parseInt(targeTimeStamp);
+        var nowTimeStamp = Math.floor(new Date().getTime() / 1000);
+        var leftTimeStamp = targeTimeStamp - nowTimeStamp;
+        return leftTimeStamp;
+    }
+    _proto.parseTimeStamp = function (timeStamp) {
+        var h = parseInt(timeStamp / 60 / 60 % 24);
+        var m = parseInt(timeStamp / 60 % 60);
+        var s = parseInt(timeStamp % 60);
+        return h + "时" + m + "分" + s + "秒";
+    }
+    _proto.countDownFunc = function () {
+        for (var i = 0; i < daojishiArr.length; i++) {
+            var temp = daojishiArr[i]
+            if (temp !== undefined) {
+                var leftTimeStamp = _this.getLeftTimeStamp(temp.end_time)
+                if (leftTimeStamp <= 0) {
+                    var zhongziname = temp.g_s_id == 1 ? "辣椒" : temp.g_s_id == 2 ? "胡萝卜" : temp.g_s_id == 3 ? "番茄" : temp.g_s_id == 4 ? "南瓜" : temp.g_s_id == 5 ? "雏菊" : "郁金香";
+                    _this.land_box.getChildAt(i).getChildAt(3).text = zhongziname + " 当前收益" + temp.profit_now;
+                    daojishiArr[i] = undefined
+                }
+                else
+                    _this.land_box.getChildAt(i).getChildAt(3).text = _proto.parseTimeStamp(leftTimeStamp)
+            }
+        }
+    }
     var iszhongnum = 0;
     var isdebuff = [0, 0, 0]
     _proto.tudifun = function () {
@@ -2053,9 +2082,18 @@ var Game = (function (_super) {
                             _this.land_box.getChildAt(data.data.list[i].position - 1).getChildAt(1).visible = true;
                             _this.land_box.getChildAt(data.data.list[i].position - 1).getChildAt(1).skin = "comp/tree/" + data.data.list[i].g_s_id + "3.png";
                             // _this.land_box.getChildAt(data.data.list[i].position - 1).getChildAt(4).visible = false;
-                            //给土地剩余赋值
-                            var zhongziname = data.data.list[i].g_s_id == 1 ? "辣椒" : data.data.list[i].g_s_id == 2 ? "胡萝卜" : data.data.list[i].g_s_id == 3 ? "番茄" : data.data.list[i].g_s_id == 4 ? "南瓜" : data.data.list[i].g_s_id == 5 ? "雏菊" : "郁金香";
-                            _this.land_box.getChildAt(data.data.list[i].position - 1).getChildAt(3).text = zhongziname + " 当前收益" + data.data.list[i].profit_now;
+                            if (data.data.list[i].end_time > 0) {
+                                var leftTimeStamp = _this.getLeftTimeStamp(data.data.list[i].end_time)
+                                if (leftTimeStamp <= 0) {
+                                    //给土地剩余赋值
+                                    var zhongziname = data.data.list[i].g_s_id == 1 ? "辣椒" : data.data.list[i].g_s_id == 2 ? "胡萝卜" : data.data.list[i].g_s_id == 3 ? "番茄" : data.data.list[i].g_s_id == 4 ? "南瓜" : data.data.list[i].g_s_id == 5 ? "雏菊" : "郁金香";
+                                    _this.land_box.getChildAt(data.data.list[i].position - 1).getChildAt(3).text = zhongziname + " 当前收益" + data.data.list[i].profit_now;
+                                }
+                                else {
+                                    _this.land_box.getChildAt(data.data.list[i].position - 1).getChildAt(3).text = _proto.parseTimeStamp(leftTimeStamp)
+                                    daojishiArr[data.data.list[i].position - 1] = data.data.list[i]
+                                }
+                            }
                             // data.data.list[i].profit_now = 0;
                             // data.data.list[i].status = 2;
                             // 作物生长状态
@@ -2098,7 +2136,46 @@ var Game = (function (_super) {
             },
         })
     }
+    _proto.tudifun1 = function (position) {
+        //自己土地数据
+        ajax({
+            url: web_url + "/game/frame/list",
+            type: 'post',
+            data: {
+                token: token,
 
+            },
+            dataType: 'json',
+            success: function (data) {
+                var data = JSON.parse(data);
+                console.log(data, "框架数据")
+                console.log(position, "position")
+
+                if (data.errcode != 10001) {
+                    for (var i = 0; i < data.data.list.length; i++) {
+                        if (data.data.list[i].position == position) {
+                            //debuff
+                            console.log(data.data.list[i].debuff+"################")
+                            if (data.data.list[i].debuff != 0) {
+                                _this.land_box.getChildAt(position).getChildAt(2).visible = true;
+                                if (data.data.list[i].debuff == 9) {
+                                    _this.land_box.getChildAt(dposition).getChildAt(2).skin = "comp/zhuyemian/ui/ui/shui.png";
+                                }
+                                if (data.data.list[i].debuff == 10) {
+                                    _this.land_box.getChildAt(position).getChildAt(2).skin = "comp/zhuyemian/ui/ui/cao.png";
+                                }
+                                if (data.data.list[i].debuff == 11) {
+                                    _this.land_box.getChildAt(position).getChildAt(2).skin = "comp/zhuyemian/ui/ui/chong.png";
+                                }
+                            } else {
+                                _this.land_box.getChildAt(position).getChildAt(2).visible = false;
+                            }
+                        }
+                    }
+                }
+            },
+        })
+    }
     var movenum = 0;
     var movesudu = 1.5;
     var movezhi = -1;
@@ -3170,6 +3247,7 @@ var Game = (function (_super) {
                                                 _this.num = 0;
                                                 _this.land_box.getChildAt(_this.landid).getChildAt(1).skin = "comp/zhongzi/zhongzi.png";
                                                 _this.land_box.getChildAt(_this.landid).getChildAt(1).visible = true;
+                                                _this.tudifun1(_this.landid);
                                                 Laya.timer.loop(1000, this, _this.shengfun, [_this.landid, zhongziid]);
                                                 // _this.tudifun();
                                                 // _this.land_box.getChildAt(_this.landid).getChildAt(4).skin = "comp/tree/donghua/" + arr_beibao[index].zzid + ".png";

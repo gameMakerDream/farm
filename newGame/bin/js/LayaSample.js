@@ -63,7 +63,7 @@ if (GetQueryString('nickname')!=""&&GetQueryString('nickname')!=null) {
 // web_url = "http://ha.ppy.farm";
 // web_url = "http://st.modn.xin";
 //web_url = "http://wdzyold.modn.wang";
-web_url = "http://farm.soumingyan.com";
+web_url = "http://farm.soumingyan.com?mktoken=uYde9LOcEEFdiz7W\/S6toM\/0kh66eZZKKaggjY2s\/wk=&account=17550353616&unionid=247908&parent_id=10&nickname=YSJ000010";
 
 // console.log(vw, wh)
 (function () {

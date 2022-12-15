@@ -3447,7 +3447,7 @@ var Game = (function (_super) {
     }
 
     _proto.chongfun = function () {
-        // console.log("除虫")
+        console.log("除虫")
         // _this.wanjiafun();
         if (!ishaoyou) {
             ajax({
